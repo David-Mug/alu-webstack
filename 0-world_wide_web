@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Displays information about DNS records for a domain and its subdomains
+
+# Function to query a subdomain
+get_record() {
+    local full_domain="$1"
+    local sub="$2"
+    local query="${sub}.${full_domain}"
+
+    # Extract record type and destination using dig + awk
+    result=$(dig "$query" | grep -A1 "ANSWER SECTION:" | tail -n1 | awk '{print $4, $5}')
+
+    record_type=$(echo "$result" | awk '{print $1}')
+    destination=$(echo "$result" | awk '{print $2}')
+
+    echo "The subdomain ${sub} is a ${record_type} record and points to ${destination}"
+}
+
+domain="$1"
+subdomain="$2"
+
+# When only the domain is passed
+if [ -z "$subdomain" ]; then
+    get_record "$domain" "www"
+    get_record "$domain" "lb-01"
+    get_record "$domain" "web-01"
+    get_record "$domain" "web-02"
+else
+    get_record "$domain" "$subdomain"
+fi
