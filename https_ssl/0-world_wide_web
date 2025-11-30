@@ -1,25 +1,35 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2086
+# subdomain_audit.sh
+# Usage:
+#   ./subdomain_audit.sh example.com          # shows www, lb-01, web-01, web-02 (in that order)
+#   ./subdomain_audit.sh example.com www      # shows only www.example.com
 
-# Function to print subdomain info
 print_info() {
-    local domain=$1
-    local sub=$2
+  local domain=$1
+  local sub=$2
+  local fqdn="${sub}.${domain}"
 
-    record=$(dig +short "$sub.$domain" | head -n1)
-    record_type=$(dig "$sub.$domain" | awk '/IN/ {print $4; exit}')
+  # destination: dig +short returns IP for A or the target for CNAME (first line)
+  dest=$(dig +short ${fqdn} | head -n1)
 
-    echo "The subdomain $sub is a $record_type record and points to $record"
+  # record type: parse the ANSWER (prints first record type found)
+  rtype=$(dig +noall +answer ${fqdn} | awk '{print $4; exit}')
+
+  echo "The subdomain ${sub} is a ${rtype} record and points to ${dest}"
 }
 
 domain=$1
 
+# if second parameter present, audit only that subdomain; otherwise use the required list
 if [ "$#" -eq 2 ]; then
-    subdomains=("$2")
+  subdomains=("$2")
 else
-    subdomains=("www" "lb-01" "web-01" "web-02")
+  subdomains=("www" "lb-01" "web-01" "web-02")
 fi
 
-for sub in "${subdomains[@]}"; do
-    print_info "$domain" "$sub"
+for sd in "${subdomains[@]}"; do
+  print_info "$domain" "$sd"
 done
+
 
